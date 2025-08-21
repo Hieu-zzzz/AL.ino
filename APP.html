@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XEGO Pro - Smart Ride Booking</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --text-light: #718096;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --shadow-xl: 0 20px 40px rgba(0,0,0,0.2);
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+            top: -100px;
+            left: -100px;
+        }
+
+        @keyframes float {
+            0% { transform: translateX(0) translateY(0) rotate(0deg); }
+            33% { transform: translateX(100px) translateY(-100px) rotate(120deg); }
+            66% { transform: translateX(-100px) translateY(100px) rotate(240deg); }
+            100% { transform: translateX(0) translateY(0) rotate(360deg); }
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .nav-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .language-selector {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 0.5rem;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .language-selector:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .phone-display {
+            color: white;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 0.6rem 1.2rem;
+            color: white;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .user-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem 0;
+            min-width: 220px;
+            z-index: 1000;
+            display: none;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .dropdown-item:hover {
+            background: #f8fafc;
+            color: var(--primary-color);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.5rem 0;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .auth-container {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-header h2 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 0.25rem;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: var(--transition);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .auth-tab.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--surface);
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .phone-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .country-code {
+            width: 80px;
+            padding: 0.875rem 0.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .auth-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 1rem;
+        }
+
+        .auth-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .auth-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .otp-input {
+            text-align: center;
+            letter-spacing: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .verification-info {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #0c4a6e;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            color: white;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .header .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .app-layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 1.5rem;
+            height: calc(100vh - 280px);
+            margin-bottom: 2rem;
+        }
+
+        /* Left Panel */
+        .control-panel {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .panel-header h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            background: linear-gradient(135deg, #a8e6cf 0%, #88d8c0 100%);
+            padding: 1rem;
+            border-radius: 12px;
+            color: #22543d;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .profile-details h4 {
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+        }
+
+        .profile-phone {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Input Sections */
+        .input-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .input-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Input Groups */
+        .input-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .input-label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            padding-left: 2.75rem;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--surface);
+            font-family: inherit;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .input-field::placeholder {
+            color: var(--text-light);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            z-index: 2;
+        }
+
+        /* Location Input with Suggestions */
+        .location-input {
+            position: relative;
+        }
+
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .suggestion-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: #f8fafc;
+        }
+
+        .suggestion-main {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .suggestion-detail {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .loading-suggestion {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        /* Time Display */
+        .time-display {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-time {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .time-period {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .period-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .badge-peak { background: rgba(255,107,107,0.3); color: #fff; }
+        .badge-off-peak { background: rgba(72,187,120,0.3); color: #fff; }
+        .badge-night { background: rgba(160,174,192,0.3); color: #fff; }
+
+        /* Weather Info */
+        .weather-info {
+            background: linear-gradient(135deg, #a8e6cf 0%, #88d8c0 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            color: #22543d;
+            margin-bottom: 1rem;
+        }
+
+        .weather-current {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .weather-icon {
+            font-size: 2rem;
+        }
+
+        .weather-details {
+            text-align: right;
+        }
+
+        .weather-temp {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .weather-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Vehicle Selection */
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .vehicle-option {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--surface);
+        }
+
+        .vehicle-option:hover {
+            border-color: var(--primary-color);
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .vehicle-option.active {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .vehicle-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .vehicle-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .vehicle-price {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        /* Calculate Button */
+        .btn-calculate {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-calculate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-calculate:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Results Section */
+        .results-section {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #744210;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-card {
+            background: rgba(255,255,255,0.8);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .result-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #8b4513;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: #744210;
+            font-weight: 500;
+        }
+
+        .fare-breakdown {
+            background: rgba(255,255,255,0.6);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .fare-breakdown h4 {
+            color: #744210;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .breakdown-item:last-child {
+            border-top: 2px solid #ddd;
+            padding-top: 0.5rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* Right Panel - Map */
+        .map-panel {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            position: relative;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .map-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .map-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .map-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+        }
+
+        .map-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        #map {
+            width: 100%;
+            height: calc(100% - 60px);
+            position: relative;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #fecaca, #f87171);
+            color: #7f1d1d;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #bbf7d0, #86efac);
+            color: #14532d;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .control-panel {
+                order: 1;
+                margin-bottom: 1rem;
+            }
+            
+            .map-panel {
+                order: 2;
+                height: 500px;
+            }
+            
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .phone-display {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+            
+            .auth-container {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            
+            .container {
+                padding: 0 0.75rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .panel-content {
+                padding: 1rem;
+            }
+            
+            .vehicle-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .app-layout {
+                gap: 1rem;
+                height: auto;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .panel-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .panel-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .panel-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Additional Enhancements */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-left">
+                <select class="language-selector" id="languageSelect">
+                    <option value="vi">🇻🇳 Tiếng Việt</option>
+                    <option value="en">🇺🇸 English</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="ko">🇰🇷 한국어</option>
+                </select>
+            </div>
+            
+            <div class="nav-right">
+                <div class="phone-display">
+                    <i class="fas fa-phone-alt"></i>
+                    <span id="supportPhone" data-translate="support_phone">Hỗ trợ: 037993306</span>
+                </div>
+                
+                <div class="user-menu">
+                    <button class="user-btn" id="userBtn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="userBtnText" data-translate="login">Đăng nhập</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-item" id="loginItem">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span data-translate="login">Đăng nhập</span>
+                        </div>
+                        <div class="dropdown-item" id="registerItem">
+                            <i class="fas fa-user-plus"></i>
+                            <span data-translate="register">Đăng ký</span>
+                        </div>
+                        
+                        <div class="dropdown-divider"></div>
+                        
+                        <div class="dropdown-item" id="profileItem" style="display: none;">
+                            <i class="fas fa-user-circle"></i>
+                            <span data-translate="profile">Thông tin cá nhân</span>
+                        </div>
+                        <div class="dropdown-item" id="historyItem" style="display: none;">
+                            <i class="fas fa-history"></i>
+                            <span data-translate="trip_history">Lịch sử chuyến đi</span>
+                        </div>
+                        <div class="dropdown-item" id="settingsItem" style="display: none;">
+                            <i class="fas fa-cog"></i>
+                            <span data-translate="settings">Cài đặt</span>
+                        </div>
+                        
+                        <div class="dropdown-divider" id="loggedInDivider" style="display: none;"></div>
+                        
+                        <div class="dropdown-item" id="logoutItem" style="display: none;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span data-translate="logout">Đăng xuất</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-container">
+            <button class="close-modal" id="closeAuthModal">&times;</button>
+            
+            <div class="auth-header">
+                <h2 data-translate="welcome">Chào mừng đến với XEGO</h2>
+                <p data-translate="auth_subtitle">Đăng nhập hoặc đăng ký để tiếp tục</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="loginTab" data-translate="login">Đăng nhập</div>
+                <div class="auth-tab" id="registerTab" data-translate="register">Đăng ký</div>
+            </div>
+            
+            <!-- Login Form -->
+            <form class="auth-form active" id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" data-translate="phone_number">Số điện thoại</label>
+                    <div class="phone-input-group">
+                        <select class="country-code" id="loginCountryCode">
+                            <option value="+84">+84</option>
+                            <option value="+1">+1</option>
+                            <option value="+44">+44</option>
+                            <option value="+86">+86</option>
+                            <option value="+82">+82</option>
+                        </select>
+                        <input type="tel" class="form-input" id="loginPhone" placeholder="123 456 789" required>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="loginOtpGroup" style="display: none;">
+                    <label class="form-label" data-translate="otp_code">Mã OTP</label>
+                    <input type="text" class="form-input otp-input" id="loginOtp" placeholder="000000" maxlength="6">
+                    <div class="verification-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span data-translate="otp_sent">Mã OTP đã được gửi đến số điện thoại của bạn</span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="auth-btn" id="loginBtn" data-translate="send_otp">Gửi mã OTP</button>
+            </form>
+            
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm">
+                <div class="form-group">
+                    <label class="form-label" data-translate="full_name">Họ và tên</label>
+                    <input type="text" class="form-input" id="registerName" placeholder="Nguyễn Văn A" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-translate="email">Email (tùy chọn)</label>
+                    <input type="email" class="form-input" id="registerEmail" placeholder="email@example.com">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-translate="phone_number">Số điện thoại</label>
+                    <div class="phone-input-group">
+                        <select class="country-code" id="registerCountryCode">
+                            <option value="+84">+84</option>
+                            <option value="+1">+1</option>
+                            <option value="+44">+44</option>
+                            <option value="+86">+86</option>
+                            <option value="+82">+82</option>
+                        </select>
+                        <input type="tel" class="form-input" id="registerPhone" placeholder="123 456 789" required>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="registerOtpGroup" style="display: none;">
+                    <label class="form-label" data-translate="otp_code">Mã OTP</label>
+                    <input type="text" class="form-input otp-input" id="registerOtp" placeholder="000000" maxlength="6">
+                    <div class="verification-info">
+                        <i class="fas fa-info-circle"></i>
+                        <span data-translate="otp_verification">Nhập mã OTP để xác thực số điện thoại</span>
+                    </div>
+                </div>
+                
+                <button type="submit" class="auth-btn" id="registerBtn" data-translate="send_otp">Gửi mã OTP</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-car"></i> XEGO</h1>
+            <p class="subtitle" data-translate="app_subtitle">Ứng dụng gọi xe thông minh với AI & Fuzzy Logic</p>
+            <span class="version-badge">v4.0 Pro</span>
+        </header>
+
+        <div class="app-layout">
+            <!-- Left Panel - Controls -->
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-route"></i> <span data-translate="trip_planning">Lên Kế Hoạch Chuyến Đi</span></h2>
+                    <p data-translate="trip_planning_desc">Tìm tuyến đường tối ưu với giá cước thông minh</p>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- User Profile Section (when logged in) -->
+                    <div class="profile-section" id="profileSection">
+                        <div class="profile-info">
+                            <div class="profile-avatar" id="profileAvatar">U</div>
+                            <div class="profile-details">
+                                <h4 id="profileName">User Name</h4>
+                                <div class="profile-phone" id="profilePhone">+84 123 456 789</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time Display -->
+                    <div class="input-section">
+                        <div class="time-display" id="timeDisplay">
+                            <div class="current-time" id="currentTime">15:24</div>
+                            <div class="time-period" id="timePeriod">
+                                <span data-translate="peak_hours">Giờ cao điểm</span> <span class="period-badge badge-peak" id="periodBadge">Peak</span>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-info" id="weatherInfo">
+                            <div class="weather-current">
+                                <div>
+                                    <div class="weather-icon" id="weatherIcon">☀️</div>
+                                </div>
+                                <div class="weather-details">
+                                    <div class="weather-temp" id="weatherTemp">28°C</div>
+                                    <div class="weather-desc" id="weatherDesc" data-translate="sunny">Trời nắng</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location Inputs -->
+                    <div class="input-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span data-translate="pickup_destination">Điểm đi & đến</span>
+                        </h3>
+                        
+                        <div class="input-group">
+                            <label class="input-label" data-translate="pickup_location">Điểm xuất phát</label>
+                            <div class="location-input">
+                                <div class="input-wrapper">
+                                    <i class="fas fa-play-circle input-icon"></i>
+                                    <input type="text" class="input-field" id="startLocation" 
+                                           data-translate-placeholder="pickup_placeholder" placeholder="Nhập địa chỉ xuất phát..." autocomplete="off">
+                                </div>
+                                <div class="suggestions-dropdown" id="startSuggestions"></div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label" data-translate="destination">Điểm đến</label>
+                            <div class="location-input">
+                                <div class="input-wrapper">
+                                    <i class="fas fa-map-pin input-icon"></i>
+                                    <input type="text" class="input-field" id="endLocation" 
+                                           data-translate-placeholder="destination_placeholder" placeholder="Nhập địa chỉ đến..." autocomplete="off">
+                                </div>
+                                <div class="suggestions-dropdown" id="endSuggestions"></div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <button class="map-btn" id="swapLocations" style="width: 100%; background: #f8fafc; color: var(--text-secondary); border: 1px solid var(--border); padding: 0.75rem;">
+                                <i class="fas fa-exchange-alt"></i> <span data-translate="swap_locations">Đổi điểm đi/đến</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vehicle Selection -->
+                    <div class="input-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-car-side"></i>
+                            <span data-translate="vehicle_type">Chọn loại xe</span>
+                        </h3>
+                        
+                        <div class="vehicle-grid">
+                            <div class="vehicle-option active" data-vehicle="bike">
+                                <div class="vehicle-icon">🏍️</div>
+                                <div class="vehicle-name" data-translate="motorbike">Xe máy</div>
+                                <div class="vehicle-price" data-translate="from_15k">Từ 15,000đ</div>
+                            </div>
+                            <div class="vehicle-option" data-vehicle="car">
+                                <div class="vehicle-icon">🚗</div>
+                                <div class="vehicle-name" data-translate="car_4seat">Ô tô 4 chỗ</div>
+                                <div class="vehicle-price" data-translate="from_25k">Từ 25,000đ</div>
+                            </div>
+                            <div class="vehicle-option" data-vehicle="car7">
+                                <div class="vehicle-icon">🚐</div>
+                                <div class="vehicle-name" data-translate="car_7seat">Ô tô 7 chỗ</div>
+                                <div class="vehicle-price" data-translate="from_35k">Từ 35,000đ</div>
+                            </div>
+                            <div class="vehicle-option" data-vehicle="luxury">
+                                <div class="vehicle-icon">🏎️</div>
+                                <div class="vehicle-name" data-translate="luxury_car">Xe sang</div>
+                                <div class="vehicle-price" data-translate="from_50k">Từ 50,000đ</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <button class="btn-calculate" id="calculateBtn" disabled>
+                        <i class="fas fa-calculator"></i> <span data-translate="calculate_trip">Tính toán chuyến đi</span>
+                    </button>
+
+                    <!-- Messages -->
+                    <div class="message error" id="errorMessage">
+                        <h4><i class="fas fa-exclamation-triangle"></i> <span data-translate="error">Lỗi</span></h4>
+                        <p id="errorText">Có lỗi xảy ra, vui lòng thử lại!</p>
+                    </div>
+
+                    <div class="message success" id="successMessage">
+                        <h4><i class="fas fa-check-circle"></i> <span data-translate="success">Thành công</span></h4>
+                        <p id="successText">Tuyến đường đã được tính toán thành công!</p>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="results-section" id="resultsSection">
+                        <div class="results-title">
+                            <i class="fas fa-chart-line"></i> <span data-translate="calculation_results">Kết quả tính toán</span>
+                        </div>
+                        
+                        <div class="result-grid">
+                            <div class="result-card">
+                                <div class="result-value" id="distanceResult">--</div>
+                                <div class="result-label" data-translate="distance">Khoảng cách</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-value" id="timeResult">--</div>
+                                <div class="result-label" data-translate="duration">Thời gian</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-value" id="fareResult">--</div>
+                                <div class="result-label" data-translate="fare">Cước phí</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="result-value" id="savingsResult">--</div>
+                                <div class="result-label" data-translate="savings">Tiết kiệm</div>
+                            </div>
+                        </div>
+
+                        <div class="fare-breakdown">
+                            <h4><i class="fas fa-receipt"></i> <span data-translate="fare_breakdown">Chi tiết cước phí</span></h4>
+                            <div class="breakdown-item">
+                                <span data-translate="base_fare">Cước cơ bản:</span>
+                                <span id="baseFare">--</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span data-translate="distance_fare">Phí khoảng cách:</span>
+                                <span id="distanceFare">--</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span data-translate="time_fare">Phí thời gian:</span>
+                                <span id="timeFare">--</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span data-translate="weather_fare">Phí thời tiết:</span>
+                                <span id="weatherFare">--</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span data-translate="total_fare">Tổng cộng:</span>
+                                <span id="totalFare">--</span>
+                            </div>
+                        </div>
+                        
+                        <div class="fare-breakdown">
+                            <h4><i class="fas fa-brain"></i> <span data-translate="fuzzy_analysis">Phân tích Fuzzy Logic</span></h4>
+                            <p id="fuzzyAnalysis" data-translate="fuzzy_analysis_desc">Phân tích sẽ được hiển thị sau khi tính toán...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Map -->
+            <div class="map-panel">
+                <div class="map-header">
+                    <h3 class="map-title"><i class="fas fa-map"></i> <span data-translate="route_map">Bản đồ tuyến đường</span></h3>
+                    <div class="map-controls">
+                        <button class="map-btn" id="currentLocationBtn" title="Vị trí hiện tại">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                        <button class="map-btn" id="fullscreenBtn" title="Toàn màn hình">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="map"></div>
+                
+                <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text" data-translate="calculating_route">Đang tính toán tuyến đường tối ưu...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Multi-language translations
+        const translations = {
+            vi: {
+                welcome: "Chào mừng đến với XEGO",
+                auth_subtitle: "Đăng nhập hoặc đăng ký để tiếp tục",
+                login: "Đăng nhập",
+                register: "Đăng ký",
+                phone_number: "Số điện thoại",
+                full_name: "Họ và tên",
+                email: "Email (tùy chọn)",
+                otp_code: "Mã OTP",
+                send_otp: "Gửi mã OTP",
+                verify_otp: "Xác thực OTP",
+                otp_sent: "Mã OTP đã được gửi đến số điện thoại của bạn",
+                otp_verification: "Nhập mã OTP để xác thực số điện thoại",
+                support_phone: "Hỗ trợ: 0379933061",
+                profile: "Thông tin cá nhân",
+                trip_history: "Lịch sử chuyến đi",
+                settings: "Cài đặt",
+                logout: "Đăng xuất",
+                app_subtitle: "Ứng dụng gọi xe thông minh với AI & Fuzzy Logic",
+                trip_planning: "Lên Kế Hoạch Chuyến Đi",
+                trip_planning_desc: "Tìm tuyến đường tối ưu với giá cước thông minh",
+                peak_hours: "Giờ cao điểm",
+                sunny: "Trời nắng",
+                pickup_destination: "Điểm đi & đến",
+                pickup_location: "Điểm xuất phát",
+                destination: "Điểm đến",
+                pickup_placeholder: "Nhập địa chỉ xuất phát...",
+                destination_placeholder: "Nhập địa chỉ đến...",
+                swap_locations: "Đổi điểm đi/đến",
+                vehicle_type: "Chọn loại xe",
+                motorbike: "Xe máy",
+                car_4seat: "Ô tô 4 chỗ",
+                car_7seat: "Ô tô 7 chỗ",
+                luxury_car: "Xe sang",
+                from_15k: "Từ 15,000đ",
+                from_25k: "Từ 25,000đ",
+                from_35k: "Từ 35,000đ",
+                from_50k: "Từ 50,000đ",
+                calculate_trip: "Tính toán chuyến đi",
+                route_map: "Bản đồ tuyến đường",
+                error: "Lỗi",
+                success: "Thành công",
+                calculation_results: "Kết quả tính toán",
+                distance: "Khoảng cách",
+                duration: "Thời gian",
+                fare: "Cước phí",
+                savings: "Tiết kiệm",
+                fare_breakdown: "Chi tiết cước phí",
+                base_fare: "Cước cơ bản",
+                distance_fare: "Phí khoảng cách",
+                time_fare: "Phí thời gian",
+                weather_fare: "Phí thời tiết",
+                total_fare: "Tổng cộng",
+                fuzzy_analysis: "Phân tích Fuzzy Logic",
+                fuzzy_analysis_desc: "Phân tích sẽ được hiển thị sau khi tính toán...",
+                calculating_route: "Đang tính toán tuyến đường tối ưu...",
+                login_required: "Vui lòng đăng nhập để sử dụng tính năng này",
+                login_success: "Đăng nhập thành công!",
+                register_success: "Đăng ký thành công!",
+                logout_success: "Đã đăng xuất thành công",
+                invalid_otp: "Mã OTP không chính xác",
+                otp_send_failed: "Không thể gửi mã OTP",
+                select_locations: "Vui lòng chọn điểm xuất phát và điểm đến",
+                calculation_error: "Có lỗi xảy ra trong quá trình tính toán",
+                location_not_found: "Không tìm thấy địa điểm",
+                searching: "Đang tìm kiếm...",
+                no_route_found: "Không tìm thấy tuyến đường"
+            },
+            en: {
+                welcome: "Welcome to XEGO",
+                auth_subtitle: "Login or register to continue",
+                login: "Login",
+                register: "Register",
+                phone_number: "Phone Number",
+                full_name: "Full Name",
+                email: "Email (optional)",
+                otp_code: "OTP Code",
+                send_otp: "Send OTP",
+                verify_otp: "Verify OTP",
+                otp_sent: "OTP code has been sent to your phone number",
+                otp_verification: "Enter OTP code to verify your phone number",
+                support_phone: "Support: 1900 1234",
+                profile: "Profile",
+                trip_history: "Trip History",
+                settings: "Settings",
+                logout: "Logout",
+                app_subtitle: "Smart ride-hailing app with AI & Fuzzy Logic",
+                trip_planning: "Trip Planning",
+                trip_planning_desc: "Find optimal routes with smart pricing",
+                peak_hours: "Peak Hours",
+                sunny: "Sunny",
+                pickup_destination: "Pickup & Destination",
+                pickup_location: "Pickup Location",
+                destination: "Destination",
+                pickup_placeholder: "Enter pickup address...",
+                destination_placeholder: "Enter destination address...",
+                swap_locations: "Swap locations",
+                vehicle_type: "Vehicle Type",
+                motorbike: "Motorbike",
+                car_4seat: "4-seat Car",
+                car_7seat: "7-seat Car",
+                luxury_car: "Luxury Car",
+                from_15k: "From 15,000đ",
+                from_25k: "From 25,000đ",
+                from_35k: "From 35,000đ",
+                from_50k: "From 50,000đ",
+                calculate_trip: "Calculate Trip",
+                route_map: "Route Map",
+                error: "Error",
+                success: "Success",
+                calculation_results: "Calculation Results",
+                distance: "Distance",
+                duration: "Duration",
+                fare: "Fare",
+                savings: "Savings",
+                fare_breakdown: "Fare Breakdown",
+                base_fare: "Base Fare",
+                distance_fare: "Distance Fee",
+                time_fare: "Time Fee",
+                weather_fare: "Weather Fee",
+                total_fare: "Total",
+                fuzzy_analysis: "Fuzzy Logic Analysis",
+                fuzzy_analysis_desc: "Analysis will be displayed after calculation...",
+                calculating_route: "Calculating optimal route...",
+                login_required: "Please login to use this feature",
+                login_success: "Login successful!",
+                register_success: "Registration successful!",
+                logout_success: "Logout successful",
+                invalid_otp: "Invalid OTP code",
+                otp_send_failed: "Failed to send OTP",
+                select_locations: "Please select pickup and destination locations",
+                calculation_error: "An error occurred during calculation",
+                location_not_found: "Location not found",
+                searching: "Searching...",
+                no_route_found: "No route found"
+            },
+            zh: {
+                welcome: "欢迎使用 XEGO",
+                auth_subtitle: "登录或注册以继续",
+                login: "登录",
+                register: "注册",
+                phone_number: "电话号码",
+                full_name: "全名",
+                email: "邮箱（可选）",
+                otp_code: "验证码",
+                send_otp: "发送验证码",
+                verify_otp: "验证验证码",
+                otp_sent: "验证码已发送到您的手机",
+                otp_verification: "输入验证码验证您的手机号码",
+                support_phone: "客服: 1900 1234",
+                profile: "个人资料",
+                trip_history: "行程历史",
+                settings: "设置",
+                logout: "退出登录",
+                app_subtitle: "智能叫车应用，采用AI和模糊逻辑",
+                trip_planning: "行程规划",
+                trip_planning_desc: "智能定价寻找最优路线",
+                peak_hours: "高峰时段",
+                sunny: "晴天",
+                pickup_destination: "上车和目的地",
+                pickup_location: "上车地点",
+                destination: "目的地",
+                pickup_placeholder: "输入上车地址...",
+                destination_placeholder: "输入目的地址...",
+                swap_locations: "交换位置",
+                vehicle_type: "车辆类型",
+                motorbike: "摩托车",
+                car_4seat: "4座汽车",
+                car_7seat: "7座汽车",
+                luxury_car: "豪华车",
+                from_15k: "从 15,000đ",
+                from_25k: "从 25,000đ",
+                from_35k: "从 35,000đ",
+                from_50k: "从 50,000đ",
+                calculate_trip: "计算行程",
+                route_map: "路线地图"
+            },
+            ko: {
+                welcome: "XEGO에 오신 것을 환영합니다",
+                auth_subtitle: "계속하려면 로그인하거나 회원가입하세요",
+                login: "로그인",
+                register: "회원가입",
+                phone_number: "전화번호",
+                full_name: "성명",
+                email: "이메일 (선택사항)",
+                otp_code: "인증번호",
+                send_otp: "인증번호 전송",
+                verify_otp: "인증번호 확인",
+                otp_sent: "인증번호가 귀하의 전화번호로 전송되었습니다",
+                otp_verification: "전화번호 확인을 위해 인증번호를 입력하세요",
+                support_phone: "고객지원: 1900 1234",
+                profile: "프로필",
+                trip_history: "여행 기록",
+                settings: "설정",
+                logout: "로그아웃",
+                app_subtitle: "AI와 퍼지 로직을 활용한 스마트 차량 호출 앱",
+                trip_planning: "여행 계획",
+                trip_planning_desc: "스마트 요금으로 최적의 경로 찾기",
+                peak_hours: "피크 시간",
+                sunny: "맑음",
+                pickup_destination: "출발지 및 목적지",
+                pickup_location: "출발 위치",
+                destination: "목적지",
+                pickup_placeholder: "출발지 주소 입력...",
+                destination_placeholder: "목적지 주소 입력...",
+                swap_locations: "위치 바꾸기",
+                vehicle_type: "차량 유형",
+                motorbike: "오토바이",
+                car_4seat: "4인승 자동차",
+                car_7seat: "7인승 자동차",
+                luxury_car: "럭셔리 카",
+                from_15k: "15,000đ부터",
+                from_25k: "25,000đ부터",
+                from_35k: "35,000đ부터",
+                from_50k: "50,000đ부터",
+                calculate_trip: "여행 계산",
+                route_map: "경로 지도"
+            }
+        };
+
+        // Global variables
+        let currentLang = 'vi';
+        let currentUser = null;
+        let map;
+        let routeLayer;
+        let startMarker;
+        let endMarker;
+        let selectedVehicle = 'bike';
+        let currentWeather = { temp: 28, precip: 0, wind: 10, code: 0 };
+        let startCoords = null;
+        let endCoords = null;
+        let geocodeTimeout = null;
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupAuthSystem();
+            setupLanguageSystem();
+            loadUserSession();
+        });
+
+        function initializeApp() {
+            initMap();
+            setupEventListeners();
+            updateTimeDisplay();
+            fetchCurrentWeather();
+            hideMessages();
+            
+            // Update time every minute
+            setInterval(updateTimeDisplay, 60000);
+            // Update weather every 5 minutes
+            setInterval(fetchCurrentWeather, 300000);
+        }
+
+        // Language System
+        function setupLanguageSystem() {
+            const languageSelect = document.getElementById('languageSelect');
+            languageSelect.addEventListener('change', function() {
+                currentLang = this.value;
+                translatePage();
+                localStorage.setItem('xego_language', currentLang);
+            });
+
+            // Load saved language
+            const savedLang = localStorage.getItem('xego_language');
+            if (savedLang && translations[savedLang]) {
+                currentLang = savedLang;
+                languageSelect.value = savedLang;
+            }
+            translatePage();
+        }
+
+        function translatePage() {
+            const elements = document.querySelectorAll('[data-translate]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[currentLang] && translations[currentLang][key]) {
+                    element.textContent = translations[currentLang][key];
+                }
+            });
+
+            // Translate placeholders
+            const placeholderElements = document.querySelectorAll('[data-translate-placeholder]');
+            placeholderElements.forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                if (translations[currentLang] && translations[currentLang][key]) {
+                    element.placeholder = translations[currentLang][key];
+                }
+            });
+
+            updateUserInterface();
+        }
+
+        // Authentication System
+        function setupAuthSystem() {
+            const authModal = document.getElementById('authModal');
+            const closeAuthModal = document.getElementById('closeAuthModal');
+            const userBtn = document.getElementById('userBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            // Modal controls
+            userBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.user-menu')) {
+                    userDropdown.style.display = 'none';
+                }
+            });
+
+            closeAuthModal.addEventListener('click', function() {
+                authModal.style.display = 'none';
+                resetAuthForms();
+            });
+
+            authModal.addEventListener('click', function(e) {
+                if (e.target === authModal) {
+                    authModal.style.display = 'none';
+                    resetAuthForms();
+                }
+            });
+
+            // Auth tabs
+            loginTab.addEventListener('click', function() {
+                switchAuthTab('login');
+            });
+
+            registerTab.addEventListener('click', function() {
+                switchAuthTab('register');
+            });
+
+            // Auth actions
+            document.getElementById('loginItem').addEventListener('click', function() {
+                showAuthModal('login');
+            });
+
+            document.getElementById('registerItem').addEventListener('click', function() {
+                showAuthModal('register');
+            });
+
+            document.getElementById('logoutItem').addEventListener('click', function() {
+                logout();
+            });
+
+            // Form submissions
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+        }
+
+        function resetAuthForms() {
+            // Reset login form
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginOtpGroup').style.display = 'none';
+            document.getElementById('loginBtn').textContent = getTranslation('send_otp');
+            document.getElementById('loginBtn').disabled = false;
+
+            // Reset register form
+            document.getElementById('registerForm').reset();
+            document.getElementById('registerOtpGroup').style.display = 'none';
+            document.getElementById('registerBtn').textContent = getTranslation('send_otp');
+            document.getElementById('registerBtn').disabled = false;
+        }
+
+        function showAuthModal(type = 'login') {
+            const authModal = document.getElementById('authModal');
+            authModal.style.display = 'flex';
+            switchAuthTab(type);
+            document.getElementById('userDropdown').style.display = 'none';
+        }
+
+        function switchAuthTab(type) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (type === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+            } else {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.add('active');
+                loginForm.classList.remove('active');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const phone = document.getElementById('loginPhone').value;
+            const countryCode = document.getElementById('loginCountryCode').value;
+            const otp = document.getElementById('loginOtp').value;
+            const btn = document.getElementById('loginBtn');
+            const otpGroup = document.getElementById('loginOtpGroup');
+
+            if (!otp) {
+                // Send OTP
+                btn.disabled = true;
+                btn.textContent = currentLang === 'vi' ? 'Đang gửi...' : 'Sending...';
+
+                try {
+                    await simulateOTPSend(countryCode + phone);
+                    
+                    otpGroup.style.display = 'block';
+                    btn.textContent = getTranslation('verify_otp');
+                    btn.disabled = false;
+                    showSuccess(getTranslation('otp_sent'));
+                } catch (error) {
+                    showError(getTranslation('otp_send_failed'));
+                    btn.disabled = false;
+                    btn.textContent = getTranslation('send_otp');
+                }
+            } else {
+                // Verify OTP
+                try {
+                    btn.disabled = true;
+                    btn.textContent = currentLang === 'vi' ? 'Đang xác thực...' : 'Verifying...';
+                    
+                    const user = await verifyOTP(countryCode + phone, otp, 'Guest User');
+                    loginSuccess(user);
+                } catch (error) {
+                    showError(getTranslation('invalid_otp'));
+                    btn.disabled = false;
+                    btn.textContent = getTranslation('verify_otp');
+                }
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const phone = document.getElementById('registerPhone').value;
+            const countryCode = document.getElementById('registerCountryCode').value;
+            const otp = document.getElementById('registerOtp').value;
+            const btn = document.getElementById('registerBtn');
+            const otpGroup = document.getElementById('registerOtpGroup');
+
+            if (!otp) {
+                // Send OTP
+                btn.disabled = true;
+                btn.textContent = currentLang === 'vi' ? 'Đang gửi...' : 'Sending...';
+
+                try {
+                    await simulateOTPSend(countryCode + phone);
+                    
+                    otpGroup.style.display = 'block';
+                    btn.textContent = currentLang === 'vi' ? 'Xác thực và Đăng ký' : 'Verify & Register';
+                    btn.disabled = false;
+                    showSuccess(getTranslation('otp_sent'));
+                } catch (error) {
+                    showError(getTranslation('otp_send_failed'));
+                    btn.disabled = false;
+                    btn.textContent = getTranslation('send_otp');
+                }
+            } else {
+                // Verify OTP and register
+                try {
+                    btn.disabled = true;
+                    btn.textContent = currentLang === 'vi' ? 'Đang đăng ký...' : 'Registering...';
+                    
+                    const user = await registerUser({
+                        name,
+                        email,
+                        phone: countryCode + phone,
+                        otp
+                    });
+                    loginSuccess(user);
+                } catch (error) {
+                    showError(currentLang === 'vi' ? 'Đăng ký thất bại' : 'Registration failed');
+                    btn.disabled = false;
+                    btn.textContent = currentLang === 'vi' ? 'Xác thực và Đăng ký' : 'Verify & Register';
+                }
+            }
+        }
+
+        async function simulateOTPSend(phone) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (Math.random() > 0.1) { // 90% success rate
+                        console.log(`OTP sent to ${phone}: 123456`);
+                        resolve();
+                    } else {
+                        reject(new Error('Network error'));
+                    }
+                }, 2000);
+            });
+        }
+
+        async function verifyOTP(phone, otp, name = 'User') {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (otp === '123456') {
+                        resolve({
+                            id: Date.now(),
+                            name: name,
+                            phone: phone,
+                            email: ''
+                        });
+                    } else {
+                        reject(new Error('Invalid OTP'));
+                    }
+                }, 1000);
+            });
+        }
+
+        async function registerUser(userData) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    if (userData.otp === '123456') {
+                        const user = {
+                            id: Date.now(),
+                            name: userData.name,
+                            phone: userData.phone,
+                            email: userData.email
+                        };
+                        resolve(user);
+                    } else {
+                        reject(new Error('Registration failed'));
+                    }
+                }, 1500);
+            });
+        }
+
+        function loginSuccess(user) {
+            currentUser = user;
+            localStorage.setItem('xego_user', JSON.stringify(user));
+            updateUserInterface();
+            document.getElementById('authModal').style.display = 'none';
+            resetAuthForms();
+            showSuccess(getTranslation('login_success'));
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('xego_user');
+            updateUserInterface();
+            document.getElementById('userDropdown').style.display = 'none';
+            showSuccess(getTranslation('logout_success'));
+        }
+
+        function loadUserSession() {
+            const savedUser = localStorage.getItem('xego_user');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    updateUserInterface();
+                } catch (error) {
+                    localStorage.removeItem('xego_user');
+                }
+            }
+        }
+
+        function updateUserInterface() {
+            const userBtnText = document.getElementById('userBtnText');
+            const profileSection = document.getElementById('profileSection');
+            const profileName = document.getElementById('profileName');
+            const profilePhone = document.getElementById('profilePhone');
+            const profileAvatar = document.getElementById('profileAvatar');
+            const loginItem = document.getElementById('loginItem');
+            const registerItem = document.getElementById('registerItem');
+            const profileItem = document.getElementById('profileItem');
+            const historyItem = document.getElementById('historyItem');
+            const settingsItem = document.getElementById('settingsItem');
+            const logoutItem = document.getElementById('logoutItem');
+            const loggedInDivider = document.getElementById('loggedInDivider');
+
+            if (currentUser) {
+                // User is logged in
+                userBtnText.textContent = currentUser.name;
+                profileSection.style.display = 'block';
+                profileName.textContent = currentUser.name;
+                profilePhone.textContent = currentUser.phone;
+                profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+
+                // Update dropdown menu
+                loginItem.style.display = 'none';
+                registerItem.style.display = 'none';
+                profileItem.style.display = 'block';
+                historyItem.style.display = 'block';
+                settingsItem.style.display = 'block';
+                logoutItem.style.display = 'block';
+                loggedInDivider.style.display = 'block';
+            } else {
+                // User is not logged in
+                userBtnText.textContent = getTranslation('login');
+                profileSection.style.display = 'none';
+
+                // Update dropdown menu
+                loginItem.style.display = 'block';
+                registerItem.style.display = 'block';
+                profileItem.style.display = 'none';
+                historyItem.style.display = 'none';
+                settingsItem.style.display = 'none';
+                logoutItem.style.display = 'none';
+                loggedInDivider.style.display = 'none';
+            }
+        }
+
+        function getTranslation(key) {
+            return translations[currentLang] && translations[currentLang][key] 
+                ? translations[currentLang][key] 
+                : translations.vi[key] || key;
+        }
+
+        // Map and routing functions
+        function initMap() {
+            map = L.map('map').setView([10.7769, 106.6955], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            map.on('click', function(e) {
+                reverseGeocode(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('startLocation').addEventListener('input', (e) => handleLocationInput(e, 'start'));
+            document.getElementById('endLocation').addEventListener('input', (e) => handleLocationInput(e, 'end'));
+            
+            document.querySelectorAll('.vehicle-option').forEach(option => {
+                option.addEventListener('click', () => selectVehicle(option.dataset.vehicle));
+            });
+            
+            document.getElementById('calculateBtn').addEventListener('click', calculateTrip);
+            document.getElementById('swapLocations').addEventListener('click', swapLocations);
+            document.getElementById('currentLocationBtn').addEventListener('click', getCurrentLocation);
+            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.location-input')) {
+                    document.getElementById('startSuggestions').style.display = 'none';
+                    document.getElementById('endSuggestions').style.display = 'none';
+                }
+            });
+        }
+
+        async function handleLocationInput(event, type) {
+            const query = event.target.value.trim();
+            const suggestionId = type + 'Suggestions';
+            const suggestionBox = document.getElementById(suggestionId);
+            
+            if (geocodeTimeout) {
+                clearTimeout(geocodeTimeout);
+            }
+            
+            if (query.length < 3) {
+                suggestionBox.style.display = 'none';
+                return;
+            }
+            
+            suggestionBox.innerHTML = `<div class="loading-suggestion">${getTranslation('searching')}</div>`;
+            suggestionBox.style.display = 'block';
+            
+            geocodeTimeout = setTimeout(async () => {
+                try {
+                    const results = await geocodeAddress(query);
+                    displaySuggestions(results, type);
+                } catch (error) {
+                    console.error('Geocoding error:', error);
+                    suggestionBox.innerHTML = `<div class="loading-suggestion">${getTranslation('location_not_found')}</div>`;
+                }
+            }, 500);
+        }
+
+        async function geocodeAddress(query) {
+            try {
+                const searchQuery = encodeURIComponent(query + ', Ho Chi Minh City, Vietnam');
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${searchQuery}&limit=8&addressdetails=1&countrycodes=vn&extratags=1`
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Geocoding request failed');
+                }
+                
+                const data = await response.json();
+                
+                return data.map(item => ({
+                    name: item.display_name.split(',')[0].trim(),
+                    address: item.display_name,
+                    lat: parseFloat(item.lat),
+                    lng: parseFloat(item.lon),
+                    type: item.type || 'location'
+                }));
+                
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                return [];
+            }
+        }
+
+        async function reverseGeocode(lat, lng) {
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Reverse geocoding failed');
+                }
+                
+                const data = await response.json();
+                
+                const startInput = document.getElementById('startLocation');
+                const endInput = document.getElementById('endLocation');
+                
+                const location = {
+                    name: data.display_name.split(',')[0].trim(),
+                    address: data.display_name,
+                    lat: lat,
+                    lng: lng
+                };
+                
+                if (!startCoords) {
+                    startInput.value = location.name;
+                    startCoords = { lat: location.lat, lng: location.lng };
+                    addMarker('start', location);
+                } else if (!endCoords) {
+                    endInput.value = location.name;
+                    endCoords = { lat: location.lat, lng: location.lng };
+                    addMarker('end', location);
+                } else {
+                    endInput.value = location.name;
+                    endCoords = { lat: location.lat, lng: location.lng };
+                    addMarker('end', location);
+                }
+                
+                checkInputsReady();
+                
+            } catch (error) {
+                console.error('Reverse geocoding error:', error);
+            }
+        }
+
+        function displaySuggestions(results, type) {
+            const suggestionBox = document.getElementById(type + 'Suggestions');
+            
+            if (results.length === 0) {
+                suggestionBox.innerHTML = `<div class="loading-suggestion">${getTranslation('location_not_found')}</div>`;
+                return;
+            }
+            
+            const html = results.map(result => `
+                <div class="suggestion-item" data-lat="${result.lat}" data-lng="${result.lng}" data-name="${result.name}" data-address="${result.address}">
+                    <div class="suggestion-main">${result.name}</div>
+                    <div class="suggestion-detail">${result.address}</div>
+                </div>
+            `).join('');
+            
+            suggestionBox.innerHTML = html;
+            suggestionBox.style.display = 'block';
+            
+            suggestionBox.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => selectLocation(item, type));
+            });
+        }
+
+        function selectLocation(item, type) {
+            const input = document.getElementById(type + 'Location');
+            const suggestionBox = document.getElementById(type + 'Suggestions');
+            
+            input.value = item.dataset.name;
+            suggestionBox.style.display = 'none';
+            
+            const coords = {
+                lat: parseFloat(item.dataset.lat),
+                lng: parseFloat(item.dataset.lng)
+            };
+            
+            const location = {
+                name: item.dataset.name,
+                address: item.dataset.address,
+                lat: coords.lat,
+                lng: coords.lng
+            };
+
+            if (type === 'start') {
+                startCoords = coords;
+                addMarker('start', location);
+            } else {
+                endCoords = coords;
+                addMarker('end', location);
+            }
+            
+            map.setView([coords.lat, coords.lng], 15);
+            checkInputsReady();
+        }
+
+        function addMarker(type, location) {
+            if (type === 'start') {
+                if (startMarker) map.removeLayer(startMarker);
+                startMarker = L.marker([location.lat, location.lng], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-play-circle" style="color: #22c55e; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        className: 'custom-marker'
+                    })
+                }).bindPopup(`<b>Điểm xuất phát</b><br>${location.name}`).addTo(map);
+            } else {
+                if (endMarker) map.removeLayer(endMarker);
+                endMarker = L.marker([location.lat, location.lng], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-map-pin" style="color: #ef4444; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        className: 'custom-marker'
+                    })
+                }).bindPopup(`<b>Điểm đến</b><br>${location.name}`).addTo(map);
+            }
+        }
+
+        function selectVehicle(vehicle) {
+            selectedVehicle = vehicle;
+            document.querySelectorAll('.vehicle-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector(`[data-vehicle="${vehicle}"]`).classList.add('active');
+        }
+
+        function swapLocations() {
+            const startInput = document.getElementById('startLocation');
+            const endInput = document.getElementById('endLocation');
+            
+            [startInput.value, endInput.value] = [endInput.value, startInput.value];
+            [startCoords, endCoords] = [endCoords, startCoords];
+            
+            if (startMarker && endMarker) {
+                const startPos = startMarker.getLatLng();
+                const endPos = endMarker.getLatLng();
+                
+                map.removeLayer(startMarker);
+                map.removeLayer(endMarker);
+                
+                if (startCoords) {
+                    startMarker = L.marker([startCoords.lat, startCoords.lng], {
+                        icon: L.divIcon({
+                            html: '<i class="fas fa-play-circle" style="color: #22c55e; font-size: 24px;"></i>',
+                            iconSize: [24, 24],
+                            className: 'custom-marker'
+                        })
+                    }).bindPopup('Điểm xuất phát').addTo(map);
+                }
+                
+                if (endCoords) {
+                    endMarker = L.marker([endCoords.lat, endCoords.lng], {
+                        icon: L.divIcon({
+                            html: '<i class="fas fa-map-pin" style="color: #ef4444; font-size: 24px;"></i>',
+                            iconSize: [24, 24],
+                            className: 'custom-marker'
+                        })
+                    }).bindPopup('Điểm đến').addTo(map);
+                }
+            }
+            
+            checkInputsReady();
+        }
+
+        function checkInputsReady() {
+            const startValue = document.getElementById('startLocation').value;
+            const endValue = document.getElementById('endLocation').value;
+            const calculateBtn = document.getElementById('calculateBtn');
+            
+            if (startValue && endValue && startCoords && endCoords) {
+                calculateBtn.disabled = false;
+                calculateBtn.classList.add('pulse');
+            } else {
+                calculateBtn.disabled = true;
+                calculateBtn.classList.remove('pulse');
+            }
+        }
+
+        function updateTimeDisplay() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            
+            document.getElementById('currentTime').textContent = timeString;
+            
+            let period, badgeClass;
+            if ((hours >= 6 && hours < 9) || (hours >= 16 && hours < 20)) {
+                period = getTranslation('peak_hours');
+                badgeClass = 'badge-peak';
+            } else if (hours >= 22 || hours < 6) {
+                period = currentLang === 'vi' ? 'Giờ đêm' : 'Night Hours';
+                badgeClass = 'badge-night';
+            } else {
+                period = currentLang === 'vi' ? 'Giờ thường' : 'Off-peak Hours';
+                badgeClass = 'badge-off-peak';
+            }
+            
+            document.getElementById('timePeriod').innerHTML = 
+                `${period} <span class="period-badge ${badgeClass}">Live</span>`;
+        }
+
+        async function fetchCurrentWeather() {
+            try {
+                const mockWeatherData = {
+                    temp: Math.round(26 + Math.random() * 6),
+                    precip: Math.random() > 0.7 ? Math.round(Math.random() * 5) : 0,
+                    wind: Math.round(8 + Math.random() * 12),
+                    code: Math.random() > 0.8 ? Math.floor(Math.random() * 3) : 0
+                };
+                
+                currentWeather = mockWeatherData;
+                updateWeatherDisplay();
+            } catch (error) {
+                console.warn('Using default weather data');
+                currentWeather = { temp: 28, precip: 0, wind: 10, code: 0 };
+                updateWeatherDisplay();
+            }
+        }
+
+        function updateWeatherDisplay() {
+            const { temp, code } = currentWeather;
+            
+            document.getElementById('weatherIcon').textContent = getWeatherIcon(code);
+            document.getElementById('weatherTemp').textContent = `${temp}°C`;
+            document.getElementById('weatherDesc').textContent = getTranslation('sunny');
+        }
+
+        function getWeatherIcon(code) {
+            const icons = ['☀️', '⛅', '☁️', '🌦️', '🌧️', '⛈️'];
+            return icons[Math.min(code, icons.length - 1)];
+        }
+
+        async function calculateTrip() {
+            if (!startCoords || !endCoords) {
+                showError(getTranslation('select_locations'));
+                return;
+            }
+            
+            showLoading(true);
+            hideMessages();
+            
+            try {
+                const routeData = await calculateRealRoute(startCoords, endCoords);
+                const pricingData = calculateFuzzyPricing(routeData);
+                
+                displayResults(routeData, pricingData);
+                showRouteOnMap(routeData.geometry, startCoords, endCoords);
+                
+                showSuccess(getTranslation('login_success')); // Reusing translation
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('resultsSection').classList.add('fade-in');
+                
+            } catch (error) {
+                console.error('Calculation error:', error);
+                showError(getTranslation('calculation_error'));
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function calculateRealRoute(start, end) {
+            try {
+                const response = await fetch(
+                    `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true`
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Routing API failed');
+                }
+                
+                const data = await response.json();
+                
+                if (data.routes && data.routes.length > 0) {
+                    const route = data.routes[0];
+                    const geometry = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                    
+                    return {
+                        distance: route.distance / 1000,
+                        duration: route.duration / 60,
+                        geometry: geometry
+                    };
+                }
+                
+                throw new Error('No route found');
+                
+            } catch (error) {
+                console.warn('Falling back to direct route calculation');
+                return calculateFallbackRoute(start, end);
+            }
+        }
+
+        function calculateFallbackRoute(start, end) {
+            const distance = haversineDistance(start.lat, start.lng, end.lat, end.lng);
+            
+            let averageSpeed = 30;
+            if (selectedVehicle === 'bike') averageSpeed = 25;
+            else if (selectedVehicle === 'car') averageSpeed = 35;
+            else if (selectedVehicle === 'car7') averageSpeed = 30;
+            else if (selectedVehicle === 'luxury') averageSpeed = 40;
+            
+            const hour = new Date().getHours();
+            if ((hour >= 6 && hour < 9) || (hour >= 16 && hour < 20)) {
+                averageSpeed *= 0.6;
+            } else if (hour >= 22 || hour < 6) {
+                averageSpeed *= 1.3;
+            }
+            
+            const duration = (distance / averageSpeed) * 60;
+            
+            return {
+                distance: distance,
+                duration: duration,
+                geometry: [
+                    [start.lat, start.lng],
+                    [end.lat, end.lng]
+                ]
+            };
+        }
+
+        function haversineDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function calculateFuzzyPricing(routeData) {
+            const { distance, duration } = routeData;
+            
+            let baseFare = 15000;
+            let distanceRate = 8000;
+            let timeMultiplier = 1.0;
+            let vehicleMultiplier = 1.0;
+            let weatherMultiplier = 1.0;
+            
+            const vehicleRates = {
+                bike: 1.0,
+                car: 1.35,
+                car7: 1.8,
+                luxury: 2.5
+            };
+            vehicleMultiplier = vehicleRates[selectedVehicle] || 1.0;
+            
+            const hour = new Date().getHours();
+            if ((hour >= 6 && hour < 9) || (hour >= 16 && hour < 20)) {
+                timeMultiplier = 1.5;
+            } else if (hour >= 22 || hour < 6) {
+                timeMultiplier = 1.2;
+            }
+            
+            if (currentWeather.precip > 2) weatherMultiplier *= 1.3;
+            else if (currentWeather.precip > 0) weatherMultiplier *= 1.15;
+            if (currentWeather.wind > 30) weatherMultiplier *= 1.1;
+            
+            const distanceMembership = fuzzyDistanceLogic(distance);
+            
+            let totalFare = 0;
+            let totalWeight = 0;
+            
+            Object.keys(distanceMembership).forEach(category => {
+                const weight = distanceMembership[category];
+                if (weight > 0) {
+                    let categoryRate = distanceRate;
+                    if (category === 'cheap') categoryRate *= 0.8;
+                    else if (category === 'expensive') categoryRate *= 1.4;
+                    
+                    const categoryFare = baseFare + (distance * categoryRate);
+                    totalFare += categoryFare * weight;
+                    totalWeight += weight;
+                }
+            });
+            
+            const finalFare = Math.round((totalFare / totalWeight) * timeMultiplier * vehicleMultiplier * weatherMultiplier / 1000) * 1000;
+            
+            return {
+                totalFare: Math.max(finalFare, baseFare),
+                baseFare,
+                distanceFare: Math.round(distance * distanceRate * vehicleMultiplier),
+                timeFare: Math.round((timeMultiplier - 1) * baseFare),
+                weatherFare: Math.round((weatherMultiplier - 1) * baseFare),
+                savings: Math.round(Math.random() * 8000 + 2000),
+                membership: distanceMembership,
+                multipliers: { timeMultiplier, vehicleMultiplier, weatherMultiplier }
+            };
+        }
+
+        function fuzzyDistanceLogic(distance) {
+            let cheap = 0, normal = 0, expensive = 0;
+            
+            if (distance <= 3) {
+                cheap = 1;
+            } else if (distance <= 7) {
+                cheap = (7 - distance) / 4;
+                normal = (distance - 3) / 4;
+            } else if (distance <= 15) {
+                normal = 1;
+            } else if (distance <= 25) {
+                normal = (25 - distance) / 10;
+                expensive = (distance - 15) / 10;
+            } else {
+                expensive = 1;
+            }
+            
+            return { cheap, normal, expensive };
+        }
+
+        function displayResults(routeData, pricingData) {
+            document.getElementById('distanceResult').textContent = routeData.distance.toFixed(1) + ' km';
+            document.getElementById('timeResult').textContent = Math.round(routeData.duration) + ' phút';
+            document.getElementById('fareResult').textContent = pricingData.totalFare.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('savingsResult').textContent = pricingData.savings.toLocaleString('vi-VN') + 'đ';
+            
+            document.getElementById('baseFare').textContent = pricingData.baseFare.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('distanceFare').textContent = pricingData.distanceFare.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('timeFare').textContent = pricingData.timeFare.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('weatherFare').textContent = pricingData.weatherFare.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('totalFare').textContent = pricingData.totalFare.toLocaleString('vi-VN') + 'đ';
+            
+            const analysis = pricingData.membership;
+            const fuzzyText = `
+${currentLang === 'vi' ? 'Phân tích Fuzzy Logic cho khoảng cách' : 'Fuzzy Logic Analysis for distance'} ${routeData.distance.toFixed(1)}km:
+• Membership "${currentLang === 'vi' ? 'rẻ' : 'cheap'}": ${Math.round(analysis.cheap * 100)}%
+• Membership "${currentLang === 'vi' ? 'bình thường' : 'normal'}": ${Math.round(analysis.normal * 100)}%  
+• Membership "${currentLang === 'vi' ? 'đắt' : 'expensive'}": ${Math.round(analysis.expensive * 100)}%
+
+${currentLang === 'vi' ? 'Các hệ số điều chỉnh:' : 'Adjustment factors:'}
+• ${currentLang === 'vi' ? 'Hệ số thời gian' : 'Time factor'}: ×${pricingData.multipliers.timeMultiplier}
+• ${currentLang === 'vi' ? 'Hệ số loại xe' : 'Vehicle factor'}: ×${pricingData.multipliers.vehicleMultiplier}
+• ${currentLang === 'vi' ? 'Hệ số thời tiết' : 'Weather factor'}: ×${pricingData.multipliers.weatherMultiplier.toFixed(2)}
+
+${currentLang === 'vi' ? 'Giá cước được tính bằng weighted average của các fuzzy membership functions kết hợp với các hệ số điều chỉnh theo thời gian, loại xe và thời tiết.' : 'Fare is calculated using weighted average of fuzzy membership functions combined with adjustment factors for time, vehicle type, and weather.'}
+            `.trim();
+            document.getElementById('fuzzyAnalysis').textContent = fuzzyText;
+        }
+
+        function showRouteOnMap(geometry, start, end) {
+            // Clear existing route
+            if (routeLayer) map.removeLayer(routeLayer);
+            
+            // Draw route
+            routeLayer = L.polyline(geometry, {
+                color: '#22c55e',
+                weight: 5,
+                opacity: 0.8,
+                smoothFactor: 2
+            }).addTo(map);
+            
+            // Ensure markers are visible
+            if (!startMarker && start) {
+                startMarker = L.marker([start.lat, start.lng], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-play-circle" style="color: #22c55e; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        className: 'custom-marker'
+                    })
+                }).bindPopup('Điểm xuất phát').addTo(map);
+            }
+            
+            if (!endMarker && end) {
+                endMarker = L.marker([end.lat, end.lng], {
+                    icon: L.divIcon({
+                        html: '<i class="fas fa-map-pin" style="color: #ef4444; font-size: 24px;"></i>',
+                        iconSize: [24, 24],
+                        className: 'custom-marker'
+                    })
+                }).bindPopup('Điểm đến').addTo(map);
+            }
+            
+            // Fit map to route with padding
+            const group = new L.featureGroup([routeLayer]);
+            if (startMarker) group.addLayer(startMarker);
+            if (endMarker) group.addLayer(endMarker);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorMsg.classList.add('show');
+            
+            setTimeout(() => {
+                errorMsg.classList.remove('show');
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successMsg = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            successText.textContent = message;
+            successMsg.classList.add('show');
+            
+            setTimeout(() => {
+                successMsg.classList.remove('show');
+            }, 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 15);
+                        
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                html: '<i class="fas fa-location-arrow" style="color: #3b82f6; font-size: 20px;"></i>',
+                                iconSize: [20, 20],
+                                className: 'custom-marker'
+                            })
+                        }).bindPopup('Vị trí hiện tại của bạn').addTo(map);
+                        
+                        // Reverse geocode to get address
+                        reverseGeocode(lat, lng);
+                    },
+                    (error) => {
+                        showError('Không thể lấy vị trí hiện tại. Vui lòng cho phép truy cập vị trí.');
+                    }
+                );
+            } else {
+                showError('Trình duyệt không hỗ trợ định vị.');
+            }
+        }
+
+        function toggleFullscreen() {
+            const mapPanel = document.querySelector('.map-panel');
+            if (mapPanel.requestFullscreen) {
+                mapPanel.requestFullscreen();
+            } else if (mapPanel.webkitRequestFullscreen) {
+                mapPanel.webkitRequestFullscreen();
+            } else if (mapPanel.msRequestFullscreen) {
+                mapPanel.msRequestFullscreen();
+            }
+            
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+
+        // Additional utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function formatDuration(minutes) {
+            if (minutes < 60) {
+                return `${Math.round(minutes)} phút`;
+            } else {
+                const hours = Math.floor(minutes / 60);
+                const mins = Math.round(minutes % 60);
+                return `${hours} giờ ${mins} phút`;
+            }
+        }
+
+        function formatDistance(km) {
+            if (km < 1) {
+                return `${Math.round(km * 1000)} m`;
+            } else {
+                return `${km.toFixed(1)} km`;
+            }
+        }
+
+        // Trip history functions (for future enhancement)
+        function saveTripHistory(tripData) {
+            if (!currentUser) return;
+            
+            const history = JSON.parse(localStorage.getItem(`xego_history_${currentUser.id}`)) || [];
+            const trip = {
+                id: Date.now(),
+                date: new Date().toISOString(),
+                from: tripData.from,
+                to: tripData.to,
+                distance: tripData.distance,
+                duration: tripData.duration,
+                fare: tripData.fare,
+                vehicle: tripData.vehicle
+            };
+            
+            history.unshift(trip);
+            if (history.length > 50) history.pop(); // Keep only last 50 trips
+            
+            localStorage.setItem(`xego_history_${currentUser.id}`, JSON.stringify(history));
+        }
+
+        function getTripHistory() {
+            if (!currentUser) return [];
+            return JSON.parse(localStorage.getItem(`xego_history_${currentUser.id}`)) || [];
+        }
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            showError('Có lỗi hệ thống xảy ra. Vui lòng tải lại trang.');
+        });
+
+        // Enhanced performance monitoring
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`XEGO loaded in ${Math.round(loadTime)}ms`);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter to calculate trip
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (!document.getElementById('calculateBtn').disabled) {
+                    calculateTrip();
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                if (document.getElementById('authModal').style.display === 'flex') {
+                    document.getElementById('authModal').style.display = 'none';
+                    resetAuthForms();
+                }
+                document.getElementById('userDropdown').style.display = 'none';
+            }
+        });
+
+        // Service Worker registration (for future PWA functionality)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                // Uncomment when service worker is ready
+                // navigator.serviceWorker.register('/sw.js')
+                //     .then(registration => console.log('SW registered:', registration))
+                //     .catch(error => console.log('SW registration failed:', error));
+            });
+        }
+
+        // Enhanced mobile support
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        document.addEventListener('touchstart', function(e) {
+            touchStartY = e.changedTouches[0].screenY;
+        });
+
+        document.addEventListener('touchend', function(e) {
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeDistance = touchEndY - touchStartY;
+            
+            // Pull down to refresh (only on mobile)
+            if (swipeDistance > 100 && window.scrollY === 0) {
+                location.reload();
+            }
+        }
+
+        // Auto-save form data
+        function saveFormData() {
+            const formData = {
+                startLocation: document.getElementById('startLocation').value,
+                endLocation: document.getElementById('endLocation').value,
+                selectedVehicle: selectedVehicle
+            };
+            sessionStorage.setItem('xego_form_data', JSON.stringify(formData));
+        }
+
+        function loadFormData() {
+            const savedData = sessionStorage.getItem('xego_form_data');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                document.getElementById('startLocation').value = data.startLocation || '';
+                document.getElementById('endLocation').value = data.endLocation || '';
+                if (data.selectedVehicle) {
+                    selectVehicle(data.selectedVehicle);
+                }
+            }
+        }
+
+        // Save form data on input change
+        document.getElementById('startLocation').addEventListener('input', saveFormData);
+        document.getElementById('endLocation').addEventListener('input', saveFormData);
+
+        // Load form data on page load
+        setTimeout(loadFormData, 100);
+
+        // Final initialization
+        setTimeout(() => {
+            translatePage();
+            updateUserInterface();
+            
+            // Add smooth animations
+            document.querySelectorAll('.control-panel, .map-panel').forEach(el => {
+                el.classList.add('fade-in');
+            });
+            
+            // Show app is ready
+            console.log('🚗 XEGO v4.0 Pro ready!');
+        }, 500);
+
+    </script>
+</body>
+</html>
