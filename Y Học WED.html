@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quét khuôn mặt để xác nhận</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qr-scanner/1.4.2/qr-scanner.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap');
+
+        :root {
+            --primary: #2e7d32;
+            --primary-dark: #1b5e20;
+            --accent: #b08968;
+            --accent-2: #c1a57b;
+            --cream: #f7f1e3;
+            --paper: #fffaf3;
+            --ink: #3b3b3b;
+            --line: #e7dcc7;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at 20% 10%, #faf5e4, #f3efe6), linear-gradient(180deg, #fffaf3 0%, #f6f2e9 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: var(--paper);
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(43, 30, 16, 0.08);
+            border: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 28px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .admin-actions {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+        }
+
+        .admin-link {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-card {
+            width: min(920px, 92vw);
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            padding: 18px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid var(--line);
+            padding: 8px 10px;
+            background: #fffef9;
+        }
+        .admin-table th {
+            background: #f3e9d6;
+            text-align: left;
+        }
+        .admin-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 8px 0 14px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .scanner-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .camera-box {
+            width: 100%;
+            margin: 0 auto;
+            max-width: 720px;
+            aspect-ratio: 16 / 9;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(176, 137, 104, 0.35);
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            border-radius: 14px;
+            border: 2px solid var(--accent);
+            display: none;
+            object-fit: cover;
+            background: #111412;
+        }
+
+        .camera-placeholder {
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            border: 2px dashed rgba(176, 137, 104, 0.6);
+            background: radial-gradient(ellipse at center, rgba(193,165,123,0.15) 0%, rgba(255,255,255,0.05) 70%), #111412;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e9d8bf;
+        }
+
+        .camera-placeholder span {
+            background: rgba(176,137,104,0.15);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(176,137,104,0.45);
+            font-weight: 600;
+        }
+
+        .controls {
+            margin: 18px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--accent), var(--accent-2));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-secondary {
+            background: #8f9aa6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin: 18px 0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.info {
+            background: #f5efe3;
+            color: #6b4f2e;
+            border: 1px solid #eadfcb;
+        }
+
+        .status.success {
+            background: #e7f2e6;
+            color: #1b5e20;
+            border: 1px solid #cfe8d0;
+        }
+
+        .status.error {
+            background: #fdecea;
+            color: #8a3324;
+            border: 1px solid #f6cfc7;
+        }
+
+        .customer-info {
+            background: var(--cream);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .customer-info h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: #fffef9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #6b4f2e;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: var(--ink);
+            font-size: 1.1rem;
+        }
+
+        .sample-section {
+            background: #fbf3df;
+            border: 1px solid #f0e2be;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .sample-section h4 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .qr-samples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .qr-sample {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .qr-sample:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .qr-sample strong {
+            color: #2196F3;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏵️ Phòng Massage Y Học Cổ Truyền</h1>
+            <p>Nhận diện khuôn mặt để tiếp nhận khách và quản lý liệu trình</p>
+            <div class="admin-actions">
+                <button id="openAdmin" class="admin-link" title="Quản trị">Quản trị</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="scanner-section">
+                <div class="camera-box">
+                    <video id="video" playsinline autoplay muted></video>
+                    <div id="cameraPlaceholder" class="camera-placeholder"><span>Khung camera sẽ hiển thị tại đây</span></div>
+                </div>
+                
+                <div class="controls">
+                    <button id="startBtn" class="btn btn-primary">
+                        📷 Bắt đầu quét khuôn mặt
+                    </button>
+                    <button id="stopBtn" class="btn btn-secondary" disabled>
+                        ⏹️ Dừng Camera
+                    </button>
+                    <button id="confirmFaceBtn" class="btn btn-primary" style="background:linear-gradient(45deg,#2563eb,#22c55e)">✅ Xác nhận khuôn mặt</button>
+                    <button id="testCamBtn" class="btn" style="background:#f1f5f9;color:#111827;border:1px solid #e5e7eb;">🛠 Kiểm tra camera</button>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#444;">
+                        <input id="autoStart" type="checkbox"> Tự động mở camera
+                    </label>
+                </div>
+
+                <div id="status" class="status info">
+                    Nhấn "Bắt đầu quét khuôn mặt" để mở camera
+                </div>
+            </div>
+
+            <div id="customerInfo" class="customer-info">
+                <h3>📋 Thông Tin Bệnh Nhân</h3>
+                <div id="infoContent" class="info-grid">
+                    <!-- Thông tin khách hàng sẽ được hiển thị ở đây -->
+                </div>
+            </div>
+
+            <div id="registrationSection" class="customer-info" style="display:none;">
+                <h3>📝 Tiếp Nhận Bệnh Nhân Mới</h3>
+                <form id="registrationForm">
+                    <div class="info-grid">
+                        <!-- Ẩn mục Mã bệnh nhân: sẽ tự tạo sau khi lưu -->
+                        <div class="info-item">
+                            <div class="info-label">Họ và tên <span style="color:#d32f2f">*</span></div>
+                            <input id="fullName" name="fullName" type="text" class="form-input" required>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Ngày sinh <span style="color:#d32f2f">*</span></div>
+                            <input id="dob" name="dob" type="date" class="form-input" required>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Giới tính <span style="color:#d32f2f">*</span></div>
+                            <select id="gender" name="gender" class="form-input" required>
+                                <option value="">-- Chọn --</option>
+                                <option value="Nam">Nam</option>
+                                <option value="Nữ">Nữ</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Số điện thoại <span style="color:#d32f2f">*</span></div>
+                            <input id="phone" name="phone" type="tel" class="form-input" required>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <input id="email" name="email" type="email" class="form-input">
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">CCCD/CMND</div>
+                            <input id="nationalId" name="nationalId" type="text" class="form-input">
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Địa chỉ <span style="color:#d32f2f">*</span></div>
+                            <input id="address" name="address" type="text" class="form-input" required>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Nghề nghiệp</div>
+                            <input id="occupation" name="occupation" type="text" class="form-input">
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Triệu chứng chính <span style="color:#d32f2f">*</span></div>
+                            <textarea id="chiefComplaint" name="chiefComplaint" class="form-input" rows="3" required></textarea>
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Tiền sử bệnh</div>
+                            <textarea id="medicalHistory" name="medicalHistory" class="form-input" rows="3"></textarea>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Thể chất (Đông y)</div>
+                            <select id="constitution" name="constitution" class="form-input">
+                                <option value="">-- Chọn --</option>
+                                <option>Khí hư</option>
+                                <option>Huyết hư</option>
+                                <option>Âm hư</option>
+                                <option>Dương hư</option>
+                                <option>Đàm thấp</option>
+                                <option>Khí uất</option>
+                            </select>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Mạch/Lưỡi</div>
+                            <input id="pulseTongue" name="pulseTongue" type="text" class="form-input" placeholder="Ví dụ: Mạch trầm tế, lưỡi nhạt...">
+                        </div>
+                    </div>
+                    <div class="controls" style="margin-top:20px;">
+                        <button type="button" id="cancelRegistration" class="btn btn-secondary">Hủy</button>
+                        <button type="button" id="savePatient" class="btn btn-primary">Lưu tiếp nhận</button>
+                    </div>
+                    <div id="formErrors" class="status error" style="display:none; margin-top:10px;"></div>
+                </form>
+            </div>
+
+            <div class="sample-section">
+                <h4>💡 Hướng dẫn tiếp nhận</h4>
+                <p>1. Bật camera và giữ khuôn mặt rõ trong khung</p>
+                <p>2. Hệ thống tự nhận diện và mở hồ sơ/phiếu tiếp nhận</p>
+                <p>3. Với khách mới, điền thông tin để lưu và quản lý liệu trình</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="modal" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 style="color:var(--primary)">Bảng điều khiển quản trị</h3>
+                <button id="closeAdmin" class="btn btn-secondary" style="padding:6px 10px">Đóng</button>
+            </div>
+            <div id="adminLogin">
+                <div class="status info">Nhập mã PIN quản trị để truy cập</div>
+                <div style="display:flex;gap:10px;align-items:center;margin:8px 0;">
+                    <input id="adminPinInput" type="password" class="form-input" placeholder="PIN quản trị">
+                    <button id="adminLoginBtn" class="btn btn-primary" style="padding:10px 14px;">Đăng nhập</button>
+                </div>
+            </div>
+            <div id="adminPanel" style="display:none;">
+                <div class="admin-toolbar">
+                    <button id="exportBtn" class="btn btn-secondary">Xuất JSON</button>
+                    <label class="btn btn-secondary" style="cursor:pointer;">
+                        Nhập JSON<input id="importFile" type="file" accept="application/json" style="display:none;">
+                    </label>
+                    <button id="changePinBtn" class="btn btn-secondary">Đổi PIN</button>
+                </div>
+                <div style="overflow:auto;max-height:60vh;">
+                    <table class="admin-table" id="patientsTable">
+                        <thead>
+                            <tr>
+                                <th>Mã</th><th>Họ tên</th><th>Điện thoại</th><th>Email</th><th>Địa chỉ</th><th>Loại</th><th>Tiểu sử</th><th>Ghi chú</th><th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qrScanner = null;
+        let isScanning = false;
+        let scanHintTimeout = null;
+        let scanFailTimeout = null;
+        let faceScanInterval = null;
+        let detectionHandled = false;
+        let lastCapturedFaceHash = null;
+
+        // Dữ liệu mẫu đã tắt để bảng quản trị trống ban đầu
+        const customerDatabase = {};
+
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const customerInfo = document.getElementById('customerInfo');
+        const infoContent = document.getElementById('infoContent');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const autoStart = document.getElementById('autoStart');
+        const testCamBtn = document.getElementById('testCamBtn');
+        const confirmFaceBtn = document.getElementById('confirmFaceBtn');
+
+        // Canvas ẩn để lấy ảnh từ video
+        const hiddenCanvas = document.createElement('canvas');
+        hiddenCanvas.width = 128;
+        hiddenCanvas.height = 128;
+        const registrationSection = document.getElementById('registrationSection');
+        const registrationForm = document.getElementById('registrationForm');
+        const formErrors = document.getElementById('formErrors');
+        const cancelRegistration = document.getElementById('cancelRegistration');
+        const regenIdBtn = document.getElementById('regenIdBtn');
+        const savePatientBtn = document.getElementById('savePatient');
+        const adminModal = document.getElementById('adminModal');
+        const openAdmin = document.getElementById('openAdmin');
+        const closeAdmin = document.getElementById('closeAdmin');
+        const adminLogin = document.getElementById('adminLogin');
+        const adminPanel = document.getElementById('adminPanel');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const adminPinInput = document.getElementById('adminPinInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const importFile = document.getElementById('importFile');
+        const changePinBtn = document.getElementById('changePinBtn');
+        const patientsTable = document.getElementById('patientsTable').querySelector('tbody');
+
+        // Khởi tạo scanner
+        async function initScanner() {
+            try {
+                qrScanner = new QrScanner(
+                    video,
+                    result => onScanSuccess(result.data),
+                    {
+                        onDecodeError: err => {
+                            // Bỏ qua lỗi giải mã liên tục
+                        },
+                        highlightScanRegion: true,
+                        highlightCodeOutline: true,
+                        preferredCamera: 'user',
+                        maxScansPerSecond: 10,
+                        returnDetailedScanResult: true,
+                    }
+                );
+            } catch (error) {
+                console.error('Lỗi khởi tạo scanner:', error);
+                updateStatus('Không thể khởi tạo camera. Vui lòng kiểm tra quyền truy cập camera.', 'error');
+            }
+        }
+
+        // Bắt đầu quét
+        async function startScanning() {
+            if (!qrScanner) {
+                await initScanner();
+            }
+
+            try {
+                // Fallback: mở camera thủ công để đảm bảo hiển thị khung hình
+                await ensureCameraFeed();
+                await qrScanner.start();
+                isScanning = true;
+                video.style.display = 'block';
+                cameraPlaceholder.style.display = 'none';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                updateStatus('Đang quét... Giữ khuôn mặt rõ trong khung để tự nhận diện', 'info');
+                detectionHandled = false;
+                startAutoFaceDetection();
+                // Thiết lập gợi ý khi chưa thấy gì
+                clearTimeout(scanHintTimeout);
+                clearTimeout(scanFailTimeout);
+                scanHintTimeout = setTimeout(() => {
+                    if (isScanning) {
+                        updateStatus('Chưa nhận được kết quả. Hãy tăng sáng, đưa gần hơn hoặc giữ ổn định.', 'info');
+                    }
+                }, 6000);
+                // Hủy quét sau một thời gian và chuyển sang tiếp nhận thủ công
+                scanFailTimeout = setTimeout(() => {
+                    if (isScanning && !detectionHandled) {
+                        stopScanning();
+                        updateStatus('Không quét được mã. Chuyển sang tiếp nhận bệnh nhân thủ công.', 'error');
+                        showRegistrationForm('');
+                    }
+                }, 15000);
+            } catch (error) {
+                console.error('Lỗi khi bắt đầu quét:', error);
+                const message = error && error.name === 'NotAllowedError'
+                    ? 'Trình duyệt đã chặn quyền camera. Vui lòng cho phép camera và tải lại trang.'
+                    : 'Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập hoặc thiết bị.';
+                updateStatus(message, 'error');
+            }
+        }
+
+        // Dừng quét
+        function stopScanning() {
+            if (qrScanner && isScanning) {
+                qrScanner.stop();
+                isScanning = false;
+                video.style.display = 'none';
+                cameraPlaceholder.style.display = 'flex';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                updateStatus('Đã dừng quét. Nhấn "Bắt đầu quét khuôn mặt" để tiếp tục.', 'info');
+                clearTimeout(scanHintTimeout);
+                clearTimeout(scanFailTimeout);
+                stopAutoFaceDetection();
+            }
+        }
+
+        // Xử lý kết quả quét
+        function onScanSuccess(decodedText) {
+            console.log('Kết quả nhận diện:', decodedText);
+            
+            // Dừng quét tạm thời
+            if (qrScanner && isScanning) {
+                qrScanner.stop();
+                isScanning = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+
+            displayCustomerInfo(decodedText);
+            clearTimeout(scanHintTimeout);
+            clearTimeout(scanFailTimeout);
+            stopAutoFaceDetection();
+        }
+
+        // Hiển thị thông tin khách hàng
+        function displayCustomerInfo(customerId) {
+            const mergedDb = getMergedDatabase();
+            const customer = mergedDb[customerId];
+            
+            if (customer) {
+                updateStatus(`✅ Tìm thấy thông tin khách hàng: ${customer.name}`, 'success');
+                
+                infoContent.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">Mã khách hàng</div>
+                        <div class="info-value">${customerId}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Họ và tên</div>
+                        <div class="info-value">${customer.name}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Số điện thoại</div>
+                        <div class="info-value">${customer.phone}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">${customer.email}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Địa chỉ</div>
+                        <div class="info-value">${customer.address}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Loại thành viên</div>
+                        <div class="info-value">
+                            <span style="
+                                padding: 4px 12px; 
+                                border-radius: 15px; 
+                                font-size: 0.9rem;
+                                background: ${customer.memberType === 'VIP' ? '#28a745' : customer.memberType === 'Thường' ? '#17a2b8' : '#ffc107'};
+                                color: ${customer.memberType === 'Mới' ? '#000' : '#fff'};
+                            ">
+                                ${customer.memberType}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Ngày tham gia</div>
+                        <div class="info-value">${customer.joinDate}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tổng đơn hàng</div>
+                        <div class="info-value">${customer.totalOrders} đơn</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tổng chi tiêu</div>
+                        <div class="info-value">${customer.totalSpent}</div>
+                    </div>
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <div class="info-label">Ghi chú</div>
+                        <div class="info-value">${customer.notes}</div>
+                    </div>
+                `;
+                
+                customerInfo.style.display = 'block';
+                registrationSection.style.display = 'none';
+                customerInfo.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                const newId = generatePatientId();
+                // đảm bảo dừng quét và mở form tiếp nhận ngay
+                if (isScanning) { stopScanning(); }
+                customerInfo.style.display = 'none';
+                showRegistrationForm(newId);
+                updateStatus('❌ Chưa có hồ sơ. Vui lòng nhập thông tin để tiếp nhận.', 'error');
+            }
+        }
+
+        // Cập nhật trạng thái
+        function updateStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        // (Đã bỏ phần mô phỏng QR mẫu)
+
+        // Gắn sự kiện
+        startBtn.addEventListener('click', startScanning);
+        stopBtn.addEventListener('click', stopScanning);
+        cancelRegistration.addEventListener('click', () => {
+            registrationSection.style.display = 'none';
+            formErrors.style.display = 'none';
+            resetRegistrationForm();
+        });
+        // Submit form khi nhấn Lưu tiếp nhận
+        registrationForm.addEventListener('submit', onSubmitRegistration);
+        savePatientBtn.addEventListener('click', () => {
+            // Đảm bảo modal quản trị đóng trước khi submit
+            if (typeof adminModal !== 'undefined' && adminModal) adminModal.style.display = 'none';
+            if (registrationForm.checkValidity()) registrationForm.requestSubmit();
+            else registrationForm.reportValidity();
+        });
+        confirmFaceBtn.addEventListener('click', onConfirmFace);
+        if (regenIdBtn) {
+            regenIdBtn.addEventListener('click', () => {
+                const idInput = document.getElementById('patientId');
+                if (idInput) idInput.value = generatePatientId();
+            });
+        }
+        if (savePatientBtn) {
+            // Đảm bảo bấm nút luôn submit form kể cả khi browser không tự submit
+            savePatientBtn.addEventListener('click', () => {
+                if (registrationForm.checkValidity()) {
+                    registrationForm.requestSubmit();
+                } else {
+                    registrationForm.reportValidity();
+                }
+            });
+        }
+
+        // ===== Admin modal events =====
+        openAdmin.addEventListener('click', () => {
+            adminModal.style.display = 'flex';
+            adminLogin.style.display = 'block';
+            adminPanel.style.display = 'none';
+        });
+        closeAdmin.addEventListener('click', () => adminModal.style.display = 'none');
+        adminLoginBtn.addEventListener('click', tryAdminLogin);
+        exportBtn.addEventListener('click', exportPatients);
+        importFile.addEventListener('change', importPatients);
+        changePinBtn.addEventListener('click', changeAdminPin);
+
+        // Khởi tạo khi tải trang
+        window.addEventListener('load', () => {
+            updateStatus('Ứng dụng đã sẵn sàng! Nhấn "Bắt đầu quét khuôn mặt" để bắt đầu.', 'info');
+            // Kiểm tra tùy chọn auto-start (lưu theo sessionStorage)
+            const savedAuto = sessionStorage.getItem('autoStartCamera') === 'true';
+            autoStart.checked = savedAuto;
+            if (savedAuto) {
+                setTimeout(() => startScanning(), 300);
+            }
+        });
+
+        // Dọn dẹp khi đóng trang
+        window.addEventListener('beforeunload', () => {
+            if (qrScanner) {
+                qrScanner.destroy();
+            }
+        });
+
+        // Lưu lựa chọn auto-start
+        autoStart.addEventListener('change', () => {
+            sessionStorage.setItem('autoStartCamera', autoStart.checked ? 'true' : 'false');
+        });
+
+        // ===== Fallback mở camera thủ công (getUserMedia) =====
+        async function ensureCameraFeed() {
+            if (video.srcObject) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: false
+                });
+                video.srcObject = stream;
+                await video.play();
+            } catch (e) {
+                console.warn('Fallback camera failed:', e);
+            }
+        }
+
+        // Nút kiểm tra camera trực tiếp không qua QR
+        testCamBtn.addEventListener('click', async () => {
+            try {
+                await ensureCameraFeed();
+                video.style.display = 'block';
+                cameraPlaceholder.style.display = 'none';
+                updateStatus('Đang hiển thị camera thử nghiệm. Nếu thấy hình, nhấn Bắt đầu quét.', 'info');
+            } catch (e) {
+                updateStatus('Không thể mở camera để kiểm tra. Vui lòng kiểm tra quyền.', 'error');
+            }
+        });
+
+        // ===== XÁC NHẬN KHUÔN MẶT (Đơn giản bằng hash hình) =====
+        async function onConfirmFace() {
+            try {
+                await ensureCameraFeed();
+                if (!video.srcObject) {
+                    updateStatus('Không mở được camera. Vui lòng kiểm tra quyền.', 'error');
+                    return;
+                }
+                const hash = await computeFaceHashFromVideo();
+                lastCapturedFaceHash = hash;
+                const matchId = findMatchingPatientId(hash);
+                if (matchId) {
+                    updateStatus('✅ Đã nhận diện bệnh nhân hiện có.', 'success');
+                    displayCustomerInfo(matchId);
+                } else {
+                    const newId = generatePatientId();
+                    updateStatus('Khuôn mặt mới. Vui lòng nhập thông tin tiếp nhận.', 'info');
+                    showRegistrationForm(newId);
+                    // đảm bảo nút lưu hoạt động
+                    setTimeout(() => {
+                        if (savePatientBtn) {
+                            savePatientBtn.disabled = false;
+                        }
+                    }, 0);
+                }
+            } catch (e) {
+                console.error(e);
+                updateStatus('Lỗi khi xác nhận khuôn mặt.', 'error');
+            }
+        }
+
+        async function computeFaceHashFromVideo() {
+            const ctx = hiddenCanvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            // Tạo aHash 8x8
+            const small = document.createElement('canvas');
+            small.width = 8; small.height = 8;
+            const sctx = small.getContext('2d');
+            sctx.drawImage(hiddenCanvas, 0, 0, 8, 8);
+            const img = sctx.getImageData(0, 0, 8, 8).data;
+            const gray = [];
+            for (let i = 0; i < img.length; i += 4) {
+                const g = img[i] * 0.299 + img[i+1] * 0.587 + img[i+2] * 0.114;
+                gray.push(g);
+            }
+            const avg = gray.reduce((a,b)=>a+b,0) / gray.length;
+            let bits = '';
+            for (let i = 0; i < gray.length; i++) bits += gray[i] > avg ? '1' : '0';
+            return bits;
+        }
+
+        function hammingDistance(a, b) {
+            const len = Math.min(a.length, b.length);
+            let d = 0;
+            for (let i = 0; i < len; i++) if (a[i] !== b[i]) d++;
+            return d + Math.abs(a.length - b.length);
+        }
+
+        function loadFaceMap() {
+            const raw = localStorage.getItem('faceMap');
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveFaceMap(map) {
+            localStorage.setItem('faceMap', JSON.stringify(map));
+        }
+
+        function findMatchingPatientId(hash) {
+            const map = loadFaceMap();
+            let best = { id: null, dist: Infinity };
+            for (const entry of map) {
+                const dist = hammingDistance(hash, entry.hash);
+                if (dist < best.dist) best = { id: entry.patientId, dist };
+            }
+            // Ngưỡng đơn giản, có thể điều chỉnh (tăng lên để dễ khớp hơn)
+            return best.dist <= 16 ? best.id : null;
+        }
+
+        function attachFaceToPatient(patientId, hash) {
+            if (!hash) return;
+            const map = loadFaceMap();
+            const exists = map.find(e => e.patientId === patientId);
+            if (exists) {
+                exists.hash = hash;
+            } else {
+                map.push({ patientId, hash });
+            }
+            saveFaceMap(map);
+        }
+
+        function generatePatientId() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            const rnd = Math.random().toString(36).slice(2,6).toUpperCase();
+            return `BN${y}${m}${day}-${rnd}`;
+        }
+
+        // ===== Tự động nhận diện khuôn mặt khi đang quét =====
+        function startAutoFaceDetection() {
+            stopAutoFaceDetection();
+            let newFaceSamples = 0;
+            let consecutiveMatchCount = 0;
+            faceScanInterval = setInterval(async () => {
+                if (!isScanning || detectionHandled) return;
+                try {
+                    const hash = await computeFaceHashFromVideo();
+                    if (!hash) return;
+                    const map = loadFaceMap();
+                    if (map.length === 0) {
+                        // Nếu chưa có dữ liệu khuôn mặt nào, chuyển sang tiếp nhận nhanh hơn
+                        newFaceSamples++;
+                        if (newFaceSamples >= 3) {
+                            detectionHandled = true;
+                            lastCapturedFaceHash = hash;
+                            const newId = generatePatientId();
+                            stopScanning();
+                            updateStatus('Khuôn mặt mới. Mời nhập thông tin tiếp nhận.', 'info');
+                            showRegistrationForm(newId);
+                        }
+                    } else {
+                        const matchId = findMatchingPatientId(hash);
+                        if (matchId) {
+                            consecutiveMatchCount++;
+                            if (consecutiveMatchCount >= 2) {
+                                detectionHandled = true;
+                                lastCapturedFaceHash = hash;
+                                updateStatus('✅ Đã nhận diện bệnh nhân.', 'success');
+                                stopScanning();
+                                displayCustomerInfo(matchId);
+                            } else {
+                                updateStatus('Đang xác nhận khuôn mặt...', 'info');
+                            }
+                        } else {
+                            consecutiveMatchCount = 0;
+                            newFaceSamples++;
+                            // Sau nhiều mẫu không match, mở form tiếp nhận tự động
+                            if (newFaceSamples >= 8) {
+                                detectionHandled = true;
+                                lastCapturedFaceHash = hash;
+                                const newId = generatePatientId();
+                                stopScanning();
+                                updateStatus('Khuôn mặt mới. Mời nhập thông tin tiếp nhận.', 'info');
+                                showRegistrationForm(newId);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Bỏ qua lỗi tạm
+                }
+            }, 900);
+        }
+
+        function stopAutoFaceDetection() {
+            if (faceScanInterval) {
+                clearInterval(faceScanInterval);
+                faceScanInterval = null;
+            }
+        }
+
+        // ====== BỔ SUNG: Quản lý dữ liệu bệnh nhân mới (localStorage) ======
+        function getMergedDatabase() {
+            const localDbRaw = localStorage.getItem('patients');
+            const localDb = localDbRaw ? JSON.parse(localDbRaw) : {};
+            return { ...customerDatabase, ...localDb };
+        }
+
+        function showRegistrationForm(patientId) {
+            const patientIdInput = document.getElementById('patientId');
+            if (patientIdInput) {
+                patientIdInput.value = patientId || '';
+            }
+            // Đóng bảng Quản trị nếu đang mở để tránh chặn thao tác lưu
+            if (typeof adminModal !== 'undefined' && adminModal && adminModal.style.display === 'flex') {
+                adminModal.style.display = 'none';
+            }
+            registrationSection.style.display = 'block';
+            registrationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // focus vào trường đầu tiên để nhập nhanh
+            setTimeout(() => {
+                const first = document.getElementById('fullName');
+                if (first) { first.focus(); }
+            }, 200);
+        }
+
+        function onSubmitRegistration(event) {
+            event.preventDefault();
+            if (savePatientBtn) savePatientBtn.disabled = true;
+            formErrors.style.display = 'none';
+            formErrors.textContent = '';
+
+            const data = {
+                name: registrationForm.fullName.value.trim(),
+                dob: registrationForm.dob.value,
+                gender: registrationForm.gender.value,
+                phone: registrationForm.phone.value.trim(),
+                email: registrationForm.email.value.trim(),
+                nationalId: registrationForm.nationalId.value.trim(),
+                address: registrationForm.address.value.trim(),
+                occupation: registrationForm.occupation.value.trim(),
+                chiefComplaint: registrationForm.chiefComplaint.value.trim(),
+                medicalHistory: registrationForm.medicalHistory.value.trim(),
+                constitution: registrationForm.constitution.value,
+                pulseTongue: registrationForm.pulseTongue.value.trim(),
+                memberType: 'Mới',
+                joinDate: new Date().toLocaleDateString('vi-VN'),
+                totalOrders: 0,
+                totalSpent: '0 VNĐ',
+                notes: 'Tiếp nhận mới qua quét khuôn mặt'
+            };
+
+            const requiredErrors = [];
+            if (!data.name) requiredErrors.push('Họ và tên là bắt buộc.');
+            if (!data.dob) requiredErrors.push('Ngày sinh là bắt buộc.');
+            if (!data.gender) requiredErrors.push('Giới tính là bắt buộc.');
+            if (!data.phone) requiredErrors.push('Số điện thoại là bắt buộc.');
+            if (!data.address) requiredErrors.push('Địa chỉ là bắt buộc.');
+            if (!data.chiefComplaint) requiredErrors.push('Triệu chứng chính là bắt buộc.');
+
+            if (requiredErrors.length > 0) {
+                formErrors.innerHTML = requiredErrors.map(e => `• ${e}`).join('<br>');
+                formErrors.style.display = 'block';
+                if (savePatientBtn) savePatientBtn.disabled = false;
+                return;
+            }
+
+            // Lưu vào localStorage
+            // Tự tạo mã bệnh nhân khi lưu
+            const idInput = document.getElementById('patientId');
+            const id = generatePatientId();
+            const localDbRaw = localStorage.getItem('patients');
+            const localDb = localDbRaw ? JSON.parse(localDbRaw) : {};
+            localDb[id] = {
+                ...data,
+                email: data.email || '—',
+                address: data.address,
+            };
+            localStorage.setItem('patients', JSON.stringify(localDb));
+
+            updateStatus('✅ Lưu thông tin bệnh nhân thành công.', 'success');
+            // Ẩn form và trở về giao diện ban đầu
+            registrationSection.style.display = 'none';
+            customerInfo.style.display = 'none';
+            // Reset trạng thái nút/quét và UI
+            try { stopScanning(); } catch {}
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            video.style.display = 'none';
+            if (cameraPlaceholder) cameraPlaceholder.style.display = 'flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Luôn cập nhật bảng quản trị sau khi lưu
+            loadPatientsIntoTable();
+            if (savePatientBtn) savePatientBtn.disabled = false;
+            // Gắn khuôn mặt đã chụp vào hồ sơ (nếu có)
+            if (lastCapturedFaceHash) {
+                attachFaceToPatient(id, lastCapturedFaceHash);
+            }
+        }
+
+        // Dọn form sau khi lưu/hủy để chỉ hiện lại khi có lần quét mới
+        function resetRegistrationForm() {
+            formErrors.textContent = '';
+            formErrors.style.display = 'none';
+            if (registrationForm) {
+                registrationForm.reset();
+            }
+            const constitutionSelect = document.getElementById('constitution');
+            if (constitutionSelect) constitutionSelect.value = '';
+            lastCapturedFaceHash = null;
+        }
+
+        // ====== ADMIN ======
+        const ADMIN_PIN_KEY = 'admin_pin_v1';
+        function getAdminPin() {
+            let pin = localStorage.getItem(ADMIN_PIN_KEY);
+            // Lần đầu chưa có PIN → bắt đặt PIN mới
+            return pin || '';
+        }
+        function tryAdminLogin() {
+            const stored = getAdminPin();
+            if (!stored) {
+                const first = prompt('Thiết lập PIN quản trị (4-8 ký tự):');
+                if (!first || first.length < 4 || first.length > 8) {
+                    updateStatus('PIN không hợp lệ.', 'error');
+                    return;
+                }
+                localStorage.setItem(ADMIN_PIN_KEY, first);
+                adminLogin.style.display = 'none';
+                adminPanel.style.display = 'block';
+                loadPatientsIntoTable();
+                return;
+            }
+            const pin = adminPinInput.value.trim();
+            if (pin && pin === stored) {
+                adminLogin.style.display = 'none';
+                adminPanel.style.display = 'block';
+                loadPatientsIntoTable();
+            } else {
+                updateStatus('Sai PIN quản trị.', 'error');
+            }
+        }
+        function loadPatientsIntoTable() {
+            patientsTable.innerHTML = '';
+            const merged = getMergedDatabase();
+            Object.entries(merged).forEach(([id, p]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${id}</td>
+                    <td contenteditable="true">${p.name || ''}</td>
+                    <td contenteditable="true">${p.phone || ''}</td>
+                    <td contenteditable="true">${p.email || ''}</td>
+                    <td contenteditable="true">${p.address || ''}</td>
+                    <td contenteditable="true">${p.memberType || ''}</td>
+                    <td contenteditable="true">${p.medicalHistory || ''}</td>
+                    <td contenteditable="true">${p.notes || ''}</td>
+                    <td>
+                        <button class="btn btn-primary" style="padding:6px 10px" data-act="save" data-id="${id}">Lưu</button>
+                        <button class="btn btn-secondary" style="padding:6px 10px" data-act="delete" data-id="${id}">Xóa</button>
+                    </td>`;
+                patientsTable.appendChild(tr);
+            });
+            patientsTable.querySelectorAll('button').forEach(btn => btn.addEventListener('click', onAdminRowAction));
+        }
+        function onAdminRowAction(e) {
+            const btn = e.currentTarget;
+            const id = btn.getAttribute('data-id');
+            const tr = btn.closest('tr');
+            if (btn.getAttribute('data-act') === 'save') {
+                const tds = tr.querySelectorAll('td');
+                const data = {
+                    name: tds[1].textContent.trim(),
+                    phone: tds[2].textContent.trim(),
+                    email: tds[3].textContent.trim(),
+                    address: tds[4].textContent.trim(),
+                    memberType: tds[5].textContent.trim(),
+                    medicalHistory: tds[6].textContent.trim(),
+                    notes: tds[7].textContent.trim(),
+                };
+                // Save to local patients (override only local copy)
+                const localDb = JSON.parse(localStorage.getItem('patients') || '{}');
+                localDb[id] = { ...(localDb[id] || {}), ...data };
+                localStorage.setItem('patients', JSON.stringify(localDb));
+                updateStatus('Đã lưu thay đổi.', 'success');
+            } else {
+                // delete
+                const localDb = JSON.parse(localStorage.getItem('patients') || '{}');
+                delete localDb[id];
+                localStorage.setItem('patients', JSON.stringify(localDb));
+                // Cũng loại bỏ khỏi faceMap nếu có
+                const fm = loadFaceMap().filter(e => e.patientId !== id);
+                saveFaceMap(fm);
+                tr.remove();
+                updateStatus('Đã xóa bệnh nhân.', 'success');
+            }
+        }
+        function exportPatients() {
+            const data = {
+                patients: JSON.parse(localStorage.getItem('patients') || '{}'),
+                faceMap: loadFaceMap(),
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'backup_patients.json'; a.click();
+            URL.revokeObjectURL(url);
+        }
+        function importPatients(ev) {
+            const file = ev.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const obj = JSON.parse(reader.result);
+                    if (obj.patients) localStorage.setItem('patients', JSON.stringify(obj.patients));
+                    if (obj.faceMap) saveFaceMap(obj.faceMap);
+                    loadPatientsIntoTable();
+                    updateStatus('Nhập dữ liệu thành công.', 'success');
+                } catch {
+                    updateStatus('Tệp JSON không hợp lệ.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+        function changeAdminPin() {
+            const current = prompt('Nhập PIN hiện tại');
+            if (current !== getAdminPin()) return alert('PIN hiện tại không đúng');
+            const next = prompt('Nhập PIN mới (4-8 ký tự)');
+            if (!next || next.length < 4 || next.length > 8) return alert('PIN không hợp lệ');
+            localStorage.setItem(ADMIN_PIN_KEY, next);
+            alert('Đổi PIN thành công');
+        }
+    </script>
+</body>
+</html>
